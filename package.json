@@ -28,7 +28,7 @@
 		"url": "git+https://github.com/corrreia/hl-cli.git"
 	},
 	"bin": {
-		"hl": "./bin/hl"
+		"hl": "bin/hl"
 	},
 	"files": [
 		"bin",

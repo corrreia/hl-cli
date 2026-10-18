@@ -1,0 +1,7 @@
+node_modules/
+dist/
+generator/hl.wasm
+.cache/
+.claude/
+# Regenerated from specs/ by `pnpm generate` (and every build).
+src/services/*/_generated/

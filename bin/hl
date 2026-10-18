@@ -1,0 +1,7 @@
+#!/usr/bin/env node
+const major = Number(process.versions.node.split(".")[0]);
+if (!(major >= 22)) {
+	console.error(`hl needs Node.js 22 or newer; this is ${process.versions.node}.`);
+	process.exit(1);
+}
+await import("../dist/index.mjs");

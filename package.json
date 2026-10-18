@@ -1,0 +1,75 @@
+{
+	"name": "@corrreia/hl",
+	"version": "0.1.0",
+	"description": "One CLI for your homelab's self-hosted services, generated from their OpenAPI specs with Forge",
+	"keywords": [
+		"cli",
+		"forge",
+		"home-assistant",
+		"homelab",
+		"immich",
+		"jellyfin",
+		"openapi",
+		"portainer",
+		"proxmox",
+		"radarr",
+		"self-hosted",
+		"sonarr",
+		"unifi"
+	],
+	"homepage": "https://github.com/corrreia/hl-cli#readme",
+	"bugs": {
+		"url": "https://github.com/corrreia/hl-cli/issues"
+	},
+	"license": "MIT OR Apache-2.0",
+	"author": "Tomás Correia",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/corrreia/hl-cli.git"
+	},
+	"bin": {
+		"hl": "./bin/hl"
+	},
+	"files": [
+		"bin",
+		"dist",
+		"LICENSE-MIT",
+		"LICENSE-APACHE"
+	],
+	"type": "module",
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
+	"scripts": {
+		"fetch-specs": "node fetch-specs.ts",
+		"generate": "vp run task:generate",
+		"build": "vp run task:build",
+		"dev": "node src/index.ts",
+		"test": "vp test run",
+		"check": "vp run task:check:type && vp lint && vp fmt --check"
+	},
+	"dependencies": {
+		"better-result": "3.0.1",
+		"undici": "7.30.0",
+		"yargs": "18.2.0",
+		"zod": "4.6.7"
+	},
+	"devDependencies": {
+		"@apidevtools/json-schema-ref-parser": "16.0.3",
+		"@bytecodealliance/jco": "1.37.0",
+		"@cloudflare/forge": "https://pkg.pr.new/cloudflare/forge/@cloudflare/forge@7d40705fb61e7eedfe62e547348e0b291555739d",
+		"@types/node": "^24.19.2",
+		"@types/swagger2openapi": "^7.0.4",
+		"@types/yargs": "17.0.35",
+		"@typescript/native-preview": "7.0.0-dev.20260707.2",
+		"swagger2openapi": "7.0.8",
+		"tsx": "4.21.0",
+		"vite-plus": "1.1.0",
+		"yaml": "2.8.1"
+	},
+	"engines": {
+		"node": ">=22"
+	},
+	"packageManager": "pnpm@10.33.0"
+}

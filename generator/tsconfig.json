@@ -1,0 +1,11 @@
+{
+	"extends": "../tsconfig.json",
+	"compilerOptions": {
+		// The plugin runs in forge's JavaScript engine, which has neither Node
+		// nor the DOM.
+		"lib": ["ES2023"],
+		"types": []
+	},
+	"include": ["plugin.ts", "../src/catalog.ts"],
+	"exclude": []
+}

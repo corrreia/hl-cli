@@ -1,0 +1,46 @@
+name: Update specs
+
+# Every week, fetch new versions of every service's spec, and open (or
+# update) a pull request with them.
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Proxmox's specs are unpacked from Debian packages, verified with gpgv.
+      - run: sudo apt-get install -y --no-install-recommends gpgv binutils xz-utils
+      - run: pnpm fetch-specs
+      - name: Check that the new specs generate
+        run: pnpm generate && pnpm test
+      - name: Open a pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet && [ -z "$(git ls-files --others --exclude-standard specs)" ]; then
+            echo "No new specs."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B automation/update-specs
+          git add specs
+          git commit -m "Update specs" -m "$(git diff --cached --stat | tail -1)"
+          git push --force origin automation/update-specs
+          gh pr view automation/update-specs >/dev/null 2>&1 ||
+            gh pr create --head automation/update-specs --title "Update specs" \
+              --body "New versions of services' specs, from \`pnpm fetch-specs\`. Only versions whose API changed are added; the rest are listed in each service's \`skipped.txt\`."

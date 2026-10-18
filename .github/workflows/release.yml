@@ -1,0 +1,32 @@
+name: Release
+
+# Push a tag such as v0.2.0 (matching package.json's version) to publish it to npm.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  # npm trusted publishing: no token is stored; npm trusts this workflow, and signs provenance.
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - name: Check the tag matches package.json
+        run: test "v$(node -p 'require("./package.json").version')" = "$GITHUB_REF_NAME"
+      - run: pnpm generate
+      - run: pnpm check
+      - run: pnpm test
+      - run: pnpm exec vp pack
+      - run: npm publish

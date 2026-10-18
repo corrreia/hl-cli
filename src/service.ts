@@ -6,6 +6,7 @@
 import { TaggedError, type Result } from "better-result";
 import type { CatalogLoaders, CommandSpec } from "./catalog.ts";
 import type { HttpError } from "./http.ts";
+import type { VersionMatch } from "./version.ts";
 
 /** How to reach one instance, for services that don't speak HTTP routes. */
 export interface Connection {
@@ -105,9 +106,16 @@ export interface ServiceDefinition {
 	/**
 	 * Calls a command that has `rpc` (a JSON-RPC method) instead of an HTTP
 	 * route, with its body fields as the parameters, on the API version its
-	 * catalogue is from.
+	 * catalogue is from; `match` is how that relates to the server's version,
+	 * when it's known.
 	 */
 	readonly call?:
-		| ((api: ServiceApi, command: CommandSpec, body: unknown, version: string) => Promise<Result<unknown, CallError>>)
+		| ((
+				api: ServiceApi,
+				command: CommandSpec,
+				body: unknown,
+				version: string,
+				match: VersionMatch | undefined,
+		  ) => Promise<Result<unknown, CallError>>)
 		| undefined;
 }

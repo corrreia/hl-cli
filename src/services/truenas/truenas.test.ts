@@ -11,11 +11,21 @@ interface Call {
 	readonly params: unknown;
 }
 
-/** A fake TrueNAS JSON-RPC API over WebSocket, at `/api/<version>`, recording calls. */
-async function fakeTruenas(version: string): Promise<{ url: string; calls: Call[]; server: Server }> {
+/**
+ * A fake TrueNAS JSON-RPC API over WebSocket, at `/api/current` and
+ * `/api/v<version>` for each of `apis`, recording calls; other paths are 404.
+ */
+async function fakeTruenas(
+	version: string,
+	apis: readonly string[] = ["25.10.0", "27.0.0", "28.0.0"],
+): Promise<{ url: string; calls: Call[]; server: Server }> {
 	const calls: Call[] = [];
 	const server = createServer();
-	const wss = new WebSocketServer({ server });
+	const served = new Set(["/api/current", ...apis.map((api) => `/api/v${api}`)]);
+	const wss = new WebSocketServer({
+		server,
+		verifyClient: ({ req }, done) => done(served.has(req.url ?? ""), 404),
+	});
 	wss.on("connection", (socket, request) => {
 		const path = request.url ?? "";
 		let loggedIn = false;
@@ -132,6 +142,18 @@ describe("truenas versions", () => {
 		await lab.run(["truenas", "pool", "query"]);
 
 		expect(nas.calls.at(-1)).toEqual({ path: "/api/v25.10.0", method: "pool.query", params: [] });
+	});
+
+	it("calls a server older than every command set on its current API", async () => {
+		nas = await fakeTruenas("25.04.2.6", ["25.04.0", "25.04.1", "25.04.2"]);
+		lab = await createTestHomelab([service]);
+		await lab.run(["instances", "add", "truenas", "nas", "--url", nas.url], { secret: "1-secret" });
+
+		const listed = await lab.run(["truenas", "pool", "query"]);
+
+		expect(listed.code).toBe(0);
+		expect(listed.stderr).toContain("older than any TrueNAS version hl has (oldest: 25.10.0)");
+		expect(nas.calls.at(-1)).toEqual({ path: "/api/current", method: "pool.query", params: [] });
 	});
 
 	it("doesn't save an instance whose key TrueNAS rejects", async () => {

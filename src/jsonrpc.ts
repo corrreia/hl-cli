@@ -132,7 +132,9 @@ export function openRpc(url: URL, options: RpcOptions): Promise<Result<RpcConnec
 						: new Unreachable({
 								url: url.toString(),
 								cause,
-								message: `Could not reach ${url.host}${text.trim() === "" ? "" : `: ${text.trim()}`}`,
+								// A refused connection and a refused handshake (such as a 404 for an
+								// API version the server doesn't serve) fail alike, so name the path.
+								message: `Could not open ${url.toString()}${text.trim() === "" ? "" : `: ${text.trim()}`}`,
 							}),
 				),
 			);

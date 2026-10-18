@@ -2,7 +2,9 @@
  * TrueNAS (25.10 and later), with an API key (Settings → API Keys), over
  * its JSON-RPC 2.0 WebSocket API. Each command is called on the API version
  * its catalogue is from (`/api/v25.10.0`), which every later release still
- * serves, so a command means exactly what it meant in that version.
+ * serves, so a command means exactly what it meant in that version. A server
+ * older than every catalogue (25.04) doesn't serve that version, so it's
+ * called on its own newest one (`/api/current`).
  */
 import { Result } from "better-result";
 import { openRpc, RpcFailed, waitForJob, type RpcConnection } from "../../jsonrpc.ts";
@@ -67,12 +69,12 @@ export const service = defineService({
 					new RpcFailed({ method: "system.version_short", code: undefined, message: "TrueNAS sent no version" }),
 				);
 	},
-	async call(api, command, body, version) {
+	async call(api, command, body, version, match) {
 		const { rpc: method } = command;
 		if (method === undefined) {
 			return Result.err({ message: `${command.path.join(" ")} isn't a TrueNAS method` });
 		}
-		const rpc = await session(api.connection, `v${version}`);
+		const rpc = await session(api.connection, match?.kind === "server-older" ? "current" : `v${version}`);
 		if (rpc.isErr()) {
 			return rpc;
 		}

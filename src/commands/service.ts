@@ -295,7 +295,7 @@ async function runOn(
 		if (service.call === undefined) {
 			return { kind: "failed", message: `${service.title} has no way to call ${own.rpc.method}` };
 		}
-		const called = await service.call(instance.value.api, own, request.value.body, catalog.version);
+		const called = await service.call(instance.value.api, own, request.value.body, catalog.version, match);
 		return called.isErr() ? { kind: "failed", message: called.error.message } : { kind: "ok", value: called.value };
 	}
 	if (dryRun) {

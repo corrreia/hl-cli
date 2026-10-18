@@ -130,6 +130,29 @@ describe("deriveOverlay", () => {
 		expect(overlay).toEqual({ getFile_1: { group: "book", method: "get-file" } });
 	});
 
+	it("moves a command named like a group into it, under a name the group doesn't have yet", () => {
+		const rpc = (route: string) => op("post", route, []);
+		const custom = (operation: NamedOperation) => {
+			const parts = operation.route.slice(1).split(".");
+			return { group: parts.slice(0, -1).join("."), name: parts.at(-1) ?? "" };
+		};
+		const overlay = deriveOverlay(
+			[rpc("/pool.scrub"), rpc("/pool.scrub.run"), rpc("/system.reboot"), rpc("/system.reboot.info")],
+			{
+				group: "path",
+				custom,
+				movedName: "run",
+			},
+		);
+
+		expect(overlay).toEqual({
+			"POST /pool.scrub": { group: "pool.scrub", method: "call" },
+			"POST /pool.scrub.run": { group: "pool.scrub", method: "run" },
+			"POST /system.reboot": { group: "system.reboot", method: "run" },
+			"POST /system.reboot.info": { group: "system.reboot", method: "info" },
+		});
+	});
+
 	it("names the same operations the same way every time", () => {
 		const operations = [op("get", "/a", ["A"]), op("get", "/a/b", ["A"]), op("post", "/a/b", ["A"])];
 

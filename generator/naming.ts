@@ -31,6 +31,12 @@ export interface NamingOptions {
 		operation: NamedOperation,
 		all: readonly NamedOperation[],
 	) => { group: string; name: string } | undefined;
+	/**
+	 * The name a command takes when it moves into the group named like it:
+	 * by default `index` for a GET and its verb otherwise, which suits HTTP
+	 * APIs; RPC APIs, where every call is a POST, want one name such as `run`.
+	 */
+	readonly movedName?: string;
 }
 
 /** An operation, as the spec has it. */
@@ -87,13 +93,21 @@ export function deriveOverlay(operations: readonly NamedOperation[], options: Na
 	const groups = new Set(
 		named.flatMap((entry) => entry.group.split(".").map((_, i, parts) => parts.slice(0, i + 1).join("."))),
 	);
+	const taken = new Set(named.map((entry) => `${entry.group}\u0000${entry.name}`));
 	for (const entry of named) {
 		const asGroup = entry.group === "" ? entry.name : `${entry.group}.${entry.name}`;
-		if (groups.has(asGroup)) {
-			entry.group = asGroup;
-			entry.name =
-				entry.operation.method === "get" ? "index" : (VERBS[entry.operation.method] ?? entry.operation.method);
+		if (!groups.has(asGroup)) {
+			continue;
 		}
+		const preferred =
+			options.movedName ??
+			(entry.operation.method === "get" ? "index" : (VERBS[entry.operation.method] ?? entry.operation.method));
+		// A name a command in the group already has would clash: TrueNAS has `pool.scrub` and `pool.scrub.run`.
+		const name =
+			[preferred, "call", "index"].find((candidate) => !taken.has(`${asGroup}\u0000${candidate}`)) ?? preferred;
+		entry.group = asGroup;
+		entry.name = name;
+		taken.add(`${asGroup}\u0000${name}`);
 	}
 
 	// Names that clash in a group are made longer, a step at a time, until they don't:

@@ -8,7 +8,7 @@ import type { HttpError } from "./http.ts";
 import type { Keyring, NoKeyring } from "./secrets.ts";
 import type { Instance } from "./instances.ts";
 import { versionIsStale } from "./instances.ts";
-import type { ServiceDefinition, UnexpectedResponse } from "./service.ts";
+import type { CallError, ServiceDefinition, UnexpectedResponse } from "./service.ts";
 
 /** Something to write text to. */
 export interface Output {
@@ -59,7 +59,7 @@ export interface KnownVersion {
 	/** Undefined when the server has never answered. */
 	readonly version: string | undefined;
 	/** Why the server couldn't be asked just now, if it couldn't. */
-	readonly probeError: HttpError | UnexpectedResponse | undefined;
+	readonly probeError: HttpError | UnexpectedResponse | CallError | undefined;
 }
 
 /**

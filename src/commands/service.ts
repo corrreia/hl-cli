@@ -108,13 +108,18 @@ function registerCommand(yargs: Argv, session: Session, service: ServiceDefiniti
 	const shape = commandShape(service, command);
 	const name = command.path.at(-1) ?? "";
 	const usage = [name, ...shape.positionals.map((param) => `<${param.flag}>`)].join(" ");
-	const summary = command.summary || `${command.method} ${command.route}`;
+	// What the command calls: an HTTP route, or a JSON-RPC method.
+	const target =
+		command.rpc === undefined
+			? `${command.method} ${command.route}`
+			: `${command.rpc.method} (JSON-RPC${command.rpc.job ? ", a job: waits for it to finish" : ""})`;
+	const summary = command.summary || (command.rpc?.method ?? target);
 	yargs.command({
 		command: usage,
 		describe: command.hidden ? false : `${summary}${command.deprecated ? " (deprecated)" : ""}`,
 		builder: (y) => {
 			y.usage(
-				`$0 ${service.id} ${command.path.join(" ")}${shape.positionals.map((p) => ` <${p.flag}>`).join("")}\n\n${summary}\n\n${command.method} ${command.route}`,
+				`$0 ${service.id} ${command.path.join(" ")}${shape.positionals.map((p) => ` <${p.flag}>`).join("")}\n\n${summary}\n\n${target}`,
 			);
 			for (const param of shape.positionals) {
 				y.positional(param.flag, positionalOptions(param.type, param.description));
@@ -147,7 +152,7 @@ function registerCommand(yargs: Argv, session: Session, service: ServiceDefiniti
 				if (shape.bodyFields.length > 0) {
 					y.group(
 						shape.bodyFields.map((field) => field.flag),
-						"Body fields:",
+						command.rpc === undefined ? "Body fields:" : "Parameters:",
 					);
 				}
 			}
@@ -199,7 +204,10 @@ async function runCommand(
 	}
 
 	if (command.confirmation !== undefined && !dryRun && args["yes"] !== true) {
-		const what = command.confirmation === "" ? `${command.method} ${command.route}` : command.confirmation;
+		const what =
+			command.confirmation === ""
+				? (command.rpc?.method ?? `${command.method} ${command.route}`)
+				: command.confirmation;
 		const where = targets.map((name) => `${service.id}@${name}`).join(", ");
 		const answer = await io.confirm(`${what}\nRun \`${command.path.join(" ")}\` on ${where}?`);
 		if (answer === undefined) {
@@ -276,6 +284,19 @@ async function runOn(
 	const request = await prepareRequest(session.io, instance.value, own, args);
 	if (request.isErr()) {
 		return { kind: "failed", message: request.error.message };
+	}
+	if (own.rpc !== undefined) {
+		if (dryRun) {
+			return {
+				kind: "ok",
+				value: { instance: `${service.id}@${name}`, method: own.rpc.method, params: request.value.body ?? {} },
+			};
+		}
+		if (service.call === undefined) {
+			return { kind: "failed", message: `${service.title} has no way to call ${own.rpc.method}` };
+		}
+		const called = await service.call(instance.value.api, own, request.value.body, catalog.version);
+		return called.isErr() ? { kind: "failed", message: called.error.message } : { kind: "ok", value: called.value };
 	}
 	if (dryRun) {
 		return { kind: "ok", value: describeRequest(instance.value, request.value) };

@@ -4,12 +4,27 @@
  * version, which parameters come from context, and how pages work.
  */
 import { TaggedError, type Result } from "better-result";
-import type { CatalogLoaders } from "./catalog.ts";
+import type { CatalogLoaders, CommandSpec } from "./catalog.ts";
 import type { HttpError } from "./http.ts";
+
+/** How to reach one instance, for services that don't speak HTTP routes. */
+export interface Connection {
+	/** The instance's URL, such as `https://truenas.lan`. */
+	readonly url: string;
+	readonly insecure: boolean;
+	/** The key, in memory only; undefined for instances without one. */
+	readonly apiKey: string | undefined;
+}
 
 /** Requests to one instance's API, by route relative to its base URL. */
 export interface ServiceApi {
 	get(route: string, query?: Readonly<Record<string, string>>): Promise<Result<unknown, HttpError>>;
+	readonly connection: Connection;
+}
+
+/** A failure of a service's own way of calling, as a JSON-RPC call. */
+export interface CallError {
+	readonly message: string;
 }
 
 /** A response did not have the shape the service definition expects. */
@@ -80,9 +95,19 @@ export interface ServiceDefinition {
 	 * service has no way to say, and an instance's version is pinned or the
 	 * newest is used.
 	 */
-	readonly probeVersion?: ((api: ServiceApi) => Promise<Result<string, HttpError | UnexpectedResponse>>) | undefined;
+	readonly probeVersion?:
+		| ((api: ServiceApi) => Promise<Result<string, HttpError | UnexpectedResponse | CallError>>)
+		| undefined;
 	readonly context: readonly ContextParam[];
 	readonly pagination?: Pagination | undefined;
 	/** Returns what to print of a response's body, for services that wrap every response, as in `{ data }`. */
 	readonly unwrap?: ((body: unknown) => unknown) | undefined;
+	/**
+	 * Calls a command that has `rpc` (a JSON-RPC method) instead of an HTTP
+	 * route, with its body fields as the parameters, on the API version its
+	 * catalogue is from.
+	 */
+	readonly call?:
+		| ((api: ServiceApi, command: CommandSpec, body: unknown, version: string) => Promise<Result<unknown, CallError>>)
+		| undefined;
 }

@@ -3,14 +3,15 @@
 One CLI for the self-hosted services in your homelab. Each service's commands are generated from its OpenAPI spec
 with [Forge](https://github.com/cloudflare/forge), the way Cloudflare builds [`cf`](https://github.com/cloudflare/cf).
 
-21 services, each with every API version its project has published (`hl services` lists them):
+22 services, each with every API version its project has published (`hl services` lists them):
 
-| Area    | Services                                                                                                                |
-| ------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Network | UniFi Network `unifi`, AdGuard Home `adguard`                                                                           |
-| Media   | Jellyfin `jellyfin`, Immich `immich`, Audiobookshelf `audiobookshelf`, Kavita `kavita`, Komga `komga`                   |
-| *arr    | Sonarr `sonarr`, Radarr `radarr`, Lidarr `lidarr`, Prowlarr `prowlarr`, Seerr/Jellyseerr `seerr`, Overseerr `overseerr` |
-| Other   | Frigate `frigate`, Grafana `grafana`, authentik `authentik`, Karakeep `karakeep`, Speedtest Tracker `speedtest-tracker` |
+| Area           | Services                                                                                                                |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Infrastructure | Proxmox VE `proxmox`, TrueNAS `truenas`, Portainer CE `portainer`, Home Assistant `home-assistant`                      |
+| Network        | UniFi Network `unifi`, AdGuard Home `adguard`                                                                           |
+| Media          | Jellyfin `jellyfin`, Immich `immich`, Audiobookshelf `audiobookshelf`, Kavita `kavita`, Komga `komga`                   |
+| *arr           | Sonarr `sonarr`, Radarr `radarr`, Lidarr `lidarr`, Prowlarr `prowlarr`, Seerr/Jellyseerr `seerr`, Overseerr `overseerr` |
+| Other          | Frigate `frigate`, Grafana `grafana`, authentik `authentik`, Karakeep `karakeep`, Speedtest Tracker `speedtest-tracker` |
 
 What `--api-key` takes depends on the service: an API key for most, `user:password` for AdGuard Home, a service account
 token for Grafana, an API token for authentik. Frigate's unauthenticated port needs none. Karakeep and Speedtest Tracker
@@ -101,13 +102,14 @@ with each distinct command once.
 Some projects don't publish an OpenAPI document, so `hl` makes one; the code is in this repository and runs as part of
 `pnpm fetch-specs`:
 
-| Service        | What's published                                                                   | How it becomes OpenAPI 3                                                                                                                                                                   |
-| -------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Proxmox VE     | The API viewer's schema (`apidoc.js`), in each release's `pve-docs` Debian package | `generator/debian.ts` downloads it from Proxmox's repository, verified against its signed `InRelease` (keys over HTTPS) and the package hashes; `generator/convert/proxmox.ts` converts it |
-| Home Assistant | REST API documentation only                                                        | `src/services/home-assistant/openapi.ts`, written by hand from the docs                                                                                                                    |
-| Portainer CE   | Split multi-file specs (newer) and Swagger 2 (older)                               | `generator/load-spec.ts` bundles the files' `$ref`s and converts Swagger 2; any other service's Swagger 2 or split spec loads the same way                                                 |
+| Service          | What's published                                                                                | How it becomes OpenAPI 3                                                                                                                                                                                                                                                                                                                                             |
+| ---------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Proxmox VE       | The API viewer's schema (`apidoc.js`), in each release's `pve-docs` Debian package              | `generator/debian.ts` downloads it from Proxmox's repository, verified against its signed `InRelease` (keys over HTTPS) and the package hashes; `generator/convert/proxmox.ts` converts it                                                                                                                                                                           |
+| TrueNAS (25.10+) | A JSON-RPC 2.0 API over WebSocket, documented at api.truenas.com from its middleware's own dump | `generator/truenas-dump.ts` runs `middlewared --dump-api` in TrueNAS's middleware image (Docker, offline, source read-only); `generator/convert/truenas.ts` makes each method a `POST /<method>` with its parameters as body fields; `src/jsonrpc.ts` calls them over WebSocket, on the exact API version of the commands (the `.0` of each line: 25.10, 27.0, 28.0) |
+| Home Assistant   | REST API documentation only                                                                     | `src/services/home-assistant/openapi.ts`, written by hand from the docs                                                                                                                                                                                                                                                                                              |
+| Portainer CE     | Split multi-file specs (newer) and Swagger 2 (older)                                            | `generator/load-spec.ts` bundles the files' `$ref`s and converts Swagger 2; any other service's Swagger 2 or split spec loads the same way                                                                                                                                                                                                                           |
 
-Fetching Proxmox needs `gpgv`, `ar` and `tar`.
+Fetching Proxmox needs `gpgv`, `ar` and `tar`; fetching TrueNAS needs Docker (its image is 13 GB).
 
 ### New versions
 

@@ -143,6 +143,7 @@ export function connectWithKey(
 			const response = await http.send({ method: "GET", url: buildUrl(baseUrl, route, query ?? {}), headers });
 			return response.map((r) => r.body);
 		},
+		connection: { url: config.url, insecure: config.insecure, apiKey },
 	};
 	return { ...selected, service, baseUrl, headers, http, api };
 }

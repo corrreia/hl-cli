@@ -28,6 +28,9 @@ export interface ServiceOptions {
 	readonly context?: readonly ContextParam[];
 	readonly pagination?: Pagination;
 	readonly unwrap?: (body: unknown) => unknown;
+	readonly call?: ServiceDefinition["call"];
+	/** Asks the server its version itself, for services that can't say it at one route. */
+	readonly probe?: ServiceDefinition["probeVersion"];
 }
 
 /** Returns the definition of a service with `options`. */
@@ -44,9 +47,10 @@ export function defineService(options: ServiceOptions): ServiceDefinition {
 		context: options.context ?? [],
 		pagination: options.pagination,
 		unwrap: options.unwrap,
+		call: options.call,
 		probeVersion:
 			version === undefined
-				? undefined
+				? options.probe
 				: async (api) => {
 						const response = await api.get(version.route);
 						if (response.isErr()) {

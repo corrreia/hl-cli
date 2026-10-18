@@ -22,11 +22,13 @@ import { service as grafana } from "./grafana/service.ts";
 import { service as authentik } from "./authentik/service.ts";
 import { service as karakeep } from "./karakeep/service.ts";
 import { service as speedtestTracker } from "./speedtest-tracker/service.ts";
+import { service as truenas } from "./truenas/service.ts";
 import { unifi } from "./unifi/service.ts";
 
 /** The services, in the order `hl --help` lists them: infrastructure, network, media, then the rest. */
 export const SERVICES: readonly ServiceDefinition[] = [
 	proxmox,
+	truenas,
 	portainer,
 	homeAssistant,
 	unifi,

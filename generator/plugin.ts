@@ -6,8 +6,8 @@
  * `forge-plugin build` compiles it to `generator/hl.wasm`; `generate.ts` runs
  * forge with it for every bundled spec.
  */
-import { definePlugin, type Field, type Method, type Type } from "@cloudflare/forge/plugin";
-import type { BodySpec, Catalog, CommandSpec, GroupSpec, ParamSpec, ValueType } from "../src/catalog.ts";
+import { definePlugin, type Field, type Json, type Method, type Type } from "@cloudflare/forge/plugin";
+import type { BodySpec, Catalog, CommandSpec, GroupSpec, ParamSpec, RpcSpec, ValueType } from "../src/catalog.ts";
 
 /** How deep to follow models when reading a type, so recursive schemas end. */
 const MAX_DEPTH = 8;
@@ -49,7 +49,21 @@ function command(groupPath: readonly string[], method: Method): CommandSpec {
 		confirmation: method.confirmation,
 		hidden: method.hidden,
 		deprecated: method.deprecated,
+		rpc: rpc(method),
 	};
+}
+
+/** Returns how to call `method` over JSON-RPC, from its `x-hl-rpc` extension, or undefined if it has none. */
+function rpc(method: Method): RpcSpec | undefined {
+	const value = method.extension("x-hl-rpc");
+	if (!isJsonObject(value)) {
+		return undefined;
+	}
+	const { method: name, params, job, defaults } = value;
+	if (typeof name !== "string" || !Array.isArray(params) || !params.every((param) => typeof param === "string")) {
+		throw new Error(`${method.httpMethod} ${method.path}: x-hl-rpc needs a method and its params`);
+	}
+	return { method: name, params, job: job === true, defaults: isJsonObject(defaults) ? defaults : undefined };
 }
 
 /** Returns the path and query parameters of `method`, path parameters first, in route order. */
@@ -174,6 +188,10 @@ function valueType(type: Type, depth: number): ValueType {
 function brief(text: string, max: number): string {
 	const paragraph = (text.split(/\n\s*\n/)[0] ?? "").replace(/\s+/g, " ").trim();
 	return paragraph.length <= max ? paragraph : `${paragraph.slice(0, max - 1).trimEnd()}…`;
+}
+
+function isJsonObject(value: Json | undefined): value is { readonly [key: string]: Json } {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 /** Returns the source of the catalogue's module. */

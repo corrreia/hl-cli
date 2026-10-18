@@ -14,12 +14,13 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { loadSpec, withoutExamples } from "./generator/load-spec.ts";
-import type { SpecConfig } from "./generator/spec-config.ts";
+import type { SpecCandidate, SpecConfig } from "./generator/spec-config.ts";
 import { compareVersions } from "./src/version.ts";
 
 const root = import.meta.dirname;
 const wanted = process.argv.slice(2);
 const DEFAULT_LIMIT = 40;
+let failed = false;
 
 for (const service of readdirSync(join(root, "src", "services")).sort()) {
 	if (
@@ -43,7 +44,16 @@ for (const service of readdirSync(join(root, "src", "services")).sort()) {
 			: [],
 	);
 
-	const candidates = (await config.source.candidates()).sort((a, b) => compareVersions(a.version, b.version));
+	let found: SpecCandidate[];
+	try {
+		found = await config.source.candidates();
+	} catch (cause: unknown) {
+		// One source failing (offline, or Docker missing for TrueNAS) doesn't stop the others.
+		failed = true;
+		console.error(`[hl-fetch] ${service}: ${cause instanceof Error ? cause.message : String(cause)}`);
+		continue;
+	}
+	const candidates = found.sort((a, b) => compareVersions(a.version, b.version));
 	const recent = candidates.slice(-(config.limit ?? DEFAULT_LIMIT));
 	const added: string[] = [];
 	let previous: string | undefined;
@@ -72,6 +82,10 @@ for (const service of readdirSync(join(root, "src", "services")).sort()) {
 	}
 	writeFileSync(skippedPath, `${[...skipped].sort(compareVersions).join("\n")}\n`);
 	console.log(`[hl-fetch] ${service}: ${added.length === 0 ? "up to date" : `added ${added.join(", ")}`}`);
+}
+
+if (failed) {
+	process.exitCode = 1;
 }
 
 /**

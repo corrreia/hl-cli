@@ -121,7 +121,8 @@ export function prepareSpec(spec: Spec, options: PrepareOptions): Result<Spec, U
 				"x-fern-sdk-group-name": entry.group,
 				"x-fern-sdk-method-name": entry.method,
 				// Left out of the JSON when undefined.
-				"x-forge-require-confirmation": entry.confirm ?? (method === "delete" ? "" : undefined),
+				"x-forge-require-confirmation":
+					entry.confirm ?? operation.data["x-forge-require-confirmation"] ?? (method === "delete" ? "" : undefined),
 			};
 		}
 		if (operations > 0) {

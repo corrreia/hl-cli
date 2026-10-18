@@ -15,6 +15,9 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
+      # TrueNAS's API is dumped in its 13 GB middleware image; make room for it.
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL && df -h /
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
@@ -22,7 +25,8 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Proxmox's specs are unpacked from Debian packages, verified with gpgv.
+      # Proxmox's specs are unpacked from Debian packages, verified with gpgv; TrueNAS's
+      # are dumped with Docker, which the runner has.
       - run: sudo apt-get install -y --no-install-recommends gpgv binutils xz-utils
       - run: pnpm fetch-specs
       - name: Check that the new specs generate

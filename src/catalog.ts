@@ -49,6 +49,21 @@ export interface BodySpec {
 	readonly fields: readonly BodyFieldSpec[];
 }
 
+/**
+ * How a command is called over JSON-RPC, for services such as TrueNAS whose
+ * API is methods rather than HTTP routes.
+ */
+export interface RpcSpec {
+	/** The method, such as `pool.query`. */
+	readonly method: string;
+	/** The body fields that are the method's positional parameters, in order, by wire name. */
+	readonly params: readonly string[];
+	/** Whether the method starts a job, whose result is waited for. */
+	readonly job: boolean;
+	/** The defaults of parameters that have one, by wire name, to fill a gap before a parameter that's given. */
+	readonly defaults?: Readonly<Record<string, unknown>> | undefined;
+}
+
 /** One operation of the API, as one command. */
 export interface CommandSpec {
 	/** The words of the command after the service, such as `["firewall", "policies", "list"]`. */
@@ -65,6 +80,8 @@ export interface CommandSpec {
 	readonly confirmation?: string | undefined;
 	readonly hidden: boolean;
 	readonly deprecated: boolean;
+	/** How to call it over JSON-RPC, for services that have no HTTP routes; from `x-hl-rpc`. */
+	readonly rpc?: RpcSpec | undefined;
 }
 
 /** A group of commands, such as `firewall policies`. */

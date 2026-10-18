@@ -91,10 +91,11 @@ describe("version probes", () => {
 		});
 	});
 
+	// UniFi and TrueNAS (which probes over WebSocket) have tests of their own.
 	it("covers every service that can say its version", () => {
-		const probing = SERVICES.filter((service) => service.probeVersion !== undefined && service.id !== "unifi").map(
-			(s) => s.id,
-		);
+		const probing = SERVICES.filter(
+			(service) => service.probeVersion !== undefined && service.id !== "unifi" && service.id !== "truenas",
+		).map((s) => s.id);
 
 		expect(Object.keys(PROBES).sort()).toEqual(probing.sort());
 	});

@@ -1,6 +1,6 @@
 {
 	"name": "@corrreia/hl",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "One CLI for your homelab's self-hosted services, generated from their OpenAPI specs with Forge",
 	"keywords": [
 		"cli",
